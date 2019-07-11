@@ -24,6 +24,8 @@ parser.add_argument('--epochs', default=200, type=int,
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int,
                     help='manual epoch number (useful on restarts)')
+parser.add_argument('--num_class', default=10, type=int,
+                    help='number of class (default: 10)')
 parser.add_argument('-b', '--batch-size', default=64, type=int,
                     help='mini-batch size (default: 64)')
 parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
@@ -111,7 +113,7 @@ def main():
             batch_size=args.batch_size, shuffle=True, **kwargs)
 
     # create model
-    model = dn.DenseNet3(args.layers, 10,
+    model = dn.DenseNet3(args.layers, args.num_class,
                          args.z_dim, args.growth, reduction=args.reduce,
                          bottleneck=args.bottleneck, dropRate=args.droprate)
 
