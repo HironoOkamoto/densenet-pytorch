@@ -108,8 +108,8 @@ def main():
             datasets.SVHN('../data', split="train", download=True,
                              transform=transform_train),
             batch_size=args.batch_size, shuffle=True, **kwargs)
-        val_loader = torch.utils.data.DataLoader(
-            datasets.SVHN('../data', split="test", transform=transform_test),
+        val_loader = torch.utils.data.DataLoader(datasets.SVHN(
+            '../data', split="test", transform=transform_test, download=True),
             batch_size=args.batch_size, shuffle=True, **kwargs)
 
     # create model
