@@ -66,7 +66,7 @@ class DenseBlock(nn.Module):
         return self.layer(x)
 
 class DenseNet3(nn.Module):
-    def __init__(self, depth, num_classes, growth_rate=12,
+    def __init__(self, depth, num_classes, z_dim=100, growth_rate=12,
                  reduction=0.5, bottleneck=True, dropRate=0.0):
         super(DenseNet3, self).__init__()
         in_planes = 2 * growth_rate
@@ -96,7 +96,8 @@ class DenseNet3(nn.Module):
         # global average pooling and classifier
         self.bn1 = nn.BatchNorm2d(in_planes)
         self.relu = nn.ReLU(inplace=True)
-        self.fc = nn.Linear(in_planes, num_classes)
+        self.fc = nn.Linear(in_planes, z_dim)
+        self.last_fc = nn.Linear(z_dim, num_classes)
         self.in_planes = in_planes
 
         for m in self.modules():
@@ -116,4 +117,5 @@ class DenseNet3(nn.Module):
         out = self.relu(self.bn1(out))
         out = F.avg_pool2d(out, 8)
         out = out.view(-1, self.in_planes)
-        return self.fc(out)
+        out = self.fc(out)
+        return self.last_fc(out)

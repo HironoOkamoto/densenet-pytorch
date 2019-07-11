@@ -18,7 +18,9 @@ import densenet as dn
 from tensorboard_logger import configure, log_value
 
 parser = argparse.ArgumentParser(description='PyTorch DenseNet Training')
-parser.add_argument('--epochs', default=300, type=int,
+parser.add_argument('--dataset', default="cifar10", type=str,
+                    help='choose dataset name (cifar10, cifar100, svhn)')
+parser.add_argument('--epochs', default=200, type=int,
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int,
                     help='manual epoch number (useful on restarts)')
@@ -33,6 +35,8 @@ parser.add_argument('--print-freq', '-p', default=10, type=int,
                     help='print frequency (default: 10)')
 parser.add_argument('--layers', default=100, type=int,
                     help='total number of layers (default: 100)')
+parser.add_argument('--z_dim', default=100, type=int,
+                    help='dimension of penultimate layer (default: 100)')
 parser.add_argument('--growth', default=12, type=int,
                     help='number of new channels per layer (default: 12)')
 parser.add_argument('--droprate', default=0, type=float,
@@ -58,11 +62,11 @@ def main():
     global args, best_prec1
     args = parser.parse_args()
     if args.tensorboard: configure("runs/%s"%(args.name))
-    
+
     # Data loading code
     normalize = transforms.Normalize(mean=[x/255.0 for x in [125.3, 123.0, 113.9]],
                                      std=[x/255.0 for x in [63.0, 62.1, 66.7]])
-    
+
     if args.augment:
         transform_train = transforms.Compose([
             transforms.RandomCrop(32, padding=4),
@@ -81,23 +85,41 @@ def main():
         ])
 
     kwargs = {'num_workers': 1, 'pin_memory': True}
-    train_loader = torch.utils.data.DataLoader(
-        datasets.CIFAR10('../data', train=True, download=True,
-                         transform=transform_train),
-        batch_size=args.batch_size, shuffle=True, **kwargs)
-    val_loader = torch.utils.data.DataLoader(
-        datasets.CIFAR10('../data', train=False, transform=transform_test),
-        batch_size=args.batch_size, shuffle=True, **kwargs)
+    if args.dataset == "cifar10":
+        train_loader = torch.utils.data.DataLoader(
+            datasets.CIFAR10('../data', train=True, download=True,
+                             transform=transform_train),
+            batch_size=args.batch_size, shuffle=True, **kwargs)
+        val_loader = torch.utils.data.DataLoader(
+            datasets.CIFAR10('../data', train=False, transform=transform_test),
+            batch_size=args.batch_size, shuffle=True, **kwargs)
+    elif args.dataset == "cifar100":
+        train_loader = torch.utils.data.DataLoader(
+            datasets.CIFAR100('../data', train=True, download=True,
+                             transform=transform_train),
+            batch_size=args.batch_size, shuffle=True, **kwargs)
+        val_loader = torch.utils.data.DataLoader(
+            datasets.CIFAR100('../data', train=False, transform=transform_test),
+            batch_size=args.batch_size, shuffle=True, **kwargs)
+    elif args.dataset == "svhn":
+        train_loader = torch.utils.data.DataLoader(
+            datasets.SVHN('../data', split="train", download=True,
+                             transform=transform_train),
+            batch_size=args.batch_size, shuffle=True, **kwargs)
+        val_loader = torch.utils.data.DataLoader(
+            datasets.SVHN('../data', split="test", transform=transform_test),
+            batch_size=args.batch_size, shuffle=True, **kwargs)
 
     # create model
-    model = dn.DenseNet3(args.layers, 10, args.growth, reduction=args.reduce,
+    model = dn.DenseNet3(args.layers, 10,
+                         args.z_dim, args.growth, reduction=args.reduce,
                          bottleneck=args.bottleneck, dropRate=args.droprate)
-    
+
     # get the number of model parameters
     print('Number of model parameters: {}'.format(
         sum([p.data.nelement() for p in model.parameters()])))
-    
-    # for training on multiple GPUs. 
+
+    # for training on multiple GPUs.
     # Use CUDA_VISIBLE_DEVICES=0,1 to specify which GPUs to use
     # model = torch.nn.DataParallel(model).cuda()
     model = model.cuda()
